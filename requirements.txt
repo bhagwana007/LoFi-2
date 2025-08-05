@@ -1,1 +1,1 @@
-ffmpeg-python
+pylivestream==1.6.4
