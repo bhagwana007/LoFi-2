@@ -1,21 +1,36 @@
 import os
-from pylivestream import Livestream
+import subprocess
 
-STREAM_KEY = os.getenv("STREAM_KEY")
-STREAM_URL = os.getenv("STREAM_URL", "rtmp://a.rtmp.youtube.com/live2")
-AUDIO_URL = os.getenv("AUDIO_FILE")
-THUMBNAIL = os.getenv("THUMBNAIL")
+# Get environment variables
+stream_key = os.getenv("STREAM_KEY")
+stream_url = os.getenv("STREAM_URL", "rtmp://a.rtmp.youtube.com/live2")
+audio_file = os.getenv("AUDIO_FILE")
+thumbnail = os.getenv("THUMBNAIL")
 
-if not STREAM_KEY or not AUDIO_URL:
-    raise Exception("STREAM_KEY and AUDIO_FILE must be set")
+if not all([stream_key, audio_file, thumbnail]):
+    raise Exception("Missing required environment variables.")
 
-livestream = Livestream(
-    audio_input=AUDIO_URL,
-    audio_loop=True,
-    title="24/7 Music Live",
-    stream_url=f"{STREAM_URL}/{STREAM_KEY}",
-    loglevel="info",
-    thumbnail=THUMBNAIL
-)
+# Final RTMP destination
+rtmp_url = f"{stream_url}/{stream_key}"
 
-livestream.start()
+# FFmpeg Command
+command = [
+    "ffmpeg",
+    "-re",
+    "-loop", "1",
+    "-i", thumbnail,
+    "-stream_loop", "-1",
+    "-i", audio_file,
+    "-c:v", "libx264",
+    "-preset", "veryfast",
+    "-tune", "stillimage",
+    "-c:a", "aac",
+    "-b:a", "128k",
+    "-pix_fmt", "yuv420p",
+    "-shortest",
+    "-f", "flv",
+    rtmp_url
+]
+
+# Run the command
+subprocess.run(command)
